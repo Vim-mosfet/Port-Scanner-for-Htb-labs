@@ -23,7 +23,7 @@ This project presents a TCP port scanner written in Python, designed to illustra
 **Usage:**
 
 ```bash
-python scanner_ports.py -n <IP address> -p <port range>
+python Automatisation_scanNmap.py -n <IP address> -p <port range>
 ```
 
 **Script**
