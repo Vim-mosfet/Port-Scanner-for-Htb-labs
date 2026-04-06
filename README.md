@@ -23,10 +23,17 @@ This project presents a TCP port scanner written in Python, designed to illustra
 **Usage:**
 
 ```bash
-python Automatisation_scanNmap.py -n <IP address> -p <port range>
+python Automatisation_scanNmap.py <IP> --ports <ports>
 ```
+**Exemple**
+
+```bash
+python Automatisation_scanNmap.py 192.1.1.1 # Scan all ports without saving output 
+python Automatisation_scanNmap.py 192.1.1.1 --ports 80,443,22 # Scan specificports without saving output 
+python Automatisation_scanNmap.py 192.1.1.1 --ports 22,80 --output EXEMPLE.txt # Scan sspecific ports with saving output
 
 **Script**
+
 ```
 import argparse
 import nmap
@@ -88,6 +95,7 @@ if __name__ == "__main__":
             f.write("Scan en cours...\n")
 
     scan_ports(args.target, ports, output_file)
+
 ```
 
 
