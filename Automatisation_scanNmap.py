@@ -1,14 +1,7 @@
 import argparse
-import nmap  # On importe la bibliothèque python-nmap pour interagir avec Nmap.
-from tqdm import tqdm  # On importe tqdm pour afficher une barre de progression pendant le scan (optionnel, mais utile pour les scans longs).
-from time import sleep  # On importe sleep pour ajouter des pauses entre les scans (optionnel, mais peut aider à éviter d'être détecté comme un scan agressif).
-from datetime import datetime  # On importe datetime pour enregistrer les timestamps des scans (optionnel, mais utile pour les rapports).
+import nmap # On importe la bibliothèque python-nmap pour interagir avec Nmap.
 
-def is_valid_port(port):
-    """Vérifie si un port est valide (entre 1 et 65535)."""
-    return 1 <= port <= 65535         
-
-def scan_ports(target, ports='all', output_file=None):
+def scan_ports(target, ports='all', output_file=None): # On définit une fonction scan_ports qui prend en paramètres l'IP cible, les ports à scanner (par défaut 'all' pour tous les ports) et un fichier de sortie optionnel pour enregistrer les résultats.
     """
     Scanne les ports d'une IP en utilisant Nmap et affiche les résultats.
 
@@ -18,72 +11,60 @@ def scan_ports(target, ports='all', output_file=None):
                      Si argument est 'all', tous les ports sont scannés. 
                      Par défaut : 'all'.
         output_file (str): Nom du fichier de sortie pour enregistrer les résultats.
-   """
-    
-    nm = nmap.PortScanner(host=target, options='-T4')  # Initialise le PortScanner, l'objet principal pour interagir avec Nmap et on ajoute l'option '-T4' pour accélérer le scan (plus rapide que le mode par défaut).
+    """
+    nm = nmap.PortScanner() # Initialise le PortScanner, l'objet principal pour interagir avec Nmap
 
     try:
         print(f"Scan en cours sur {target}...") # On affiche le message qui indique que le scan est en cours.
 
-        if ports == 'all':
-            # Scanne tous les ports
-            nm.scan(target, '1-65535')  # Effectue le scan de tous les ports TCP
-            for port in range(1, 65536):  # Boucle de 1 à 65535 pour scanner tous les ports (Max port tpc/udp).
-                try:
-                    state = nm[target]['tcp'][port]['state']  # Récuperation de l'état du port (ouvert, fermé, filtré).
-                    if state == 'open': # On affiche seulement les ports ouverts
-                        result = f"Port {port}: Ouvert - {nm[target]['tcp'][port]['name']}\n"
-                        print(result.strip()) # On affiche plus d'infos sur le service relatif au port ouvert.
-                        if output_file:
-                            with open(output_file, "a") as f:
-                                f.write(result)
+        if ports == 'all': # Si on ne donne pas de ports spécifiques on active le scan de tous les ports (1-65535).
+            nm.scan(hosts=target, ports='1-65535', arguments='-T4')  # Effectue le scan de tous les ports TCP avec une vitesse de scan rapide (-T4).
 
-                except KeyError:
-                    pass  # Port fermé / non trouvé, on skip et on passe au port suivant.
-                except Exception as e:
-                    print(f"Erreur lors du traitement du port {port}: {e}") # Si on obtient une erreur, affiche un message.
+            for host in nm.all_hosts(): # Parcourt tous les hôtes trouvés par le scan (généralement il n'y en aura qu'un, celui ciblé).
+                for proto in nm[host].all_protocols(): # Parcourt tous les protocoles détectés pour cet hôte (généralement TCP, mais peut aussi être UDP).
+                    for port in nm[host][proto]: # Parcourt tous les ports détectés pour ce protocole.
+                        if nm[host][proto][port]['state'] == 'open': # Vérifie si le port est ouvert.
+                            result = f"Port {port}: Ouvert - {nm[host][proto][port]['name']}\n" # Formate le résultat pour indiquer le port, son état (ouvert) et le nom du service associé.
+                            print(result.strip()) # Affiche le résultat à la console, en supprimant les espaces superflus.
 
-        else: # Si on indique des ports spécifique à scanner (au lieu de 'all'), on les traites comme une liste d'entiers.
-            port_list = [int(p) for p in ports.split(',')] # On convertit la chaîne de ports indiqués et séparés par des virgules en une liste d'entiers.
-            port_str = ','.join(str(p) for p in port_list)
-            nm.scan(target, port_str)  # Effectue le scan des ports spécifiés
-            for port in port_list:
-                try:
-                    state = nm[target]['tcp'][port]['state']  # Récuperation de l'état du port (ouvert, fermé, filtré).
-                    if state == 'open':  # On affiche seulement les ports ouverts
-                        result = f"Port {port}: Ouvert - {nm[target]['tcp'][port]['name']}\n"
-                        print(result.strip()) # On affiche plus d'infos sur le service relatif au port ouvert.
-                        if output_file:
-                            with open(output_file, "a") as f:
-                                f.write(result)
+                            if output_file:
+                                with open(output_file, "a") as f:
+                                    f.write(result)
 
-                except KeyError:
-                    pass  # Port fermé / non trouvé, on skip et on passe au port suivant.
-                except Exception as e:
-                    print(f"Erreur lors du traitement du port {port}: {e}") # Si on obtient une erreur, affiche un message.
+        else:
+            port_list = [int(p) for p in ports.split(',')] # Si des ports spécifiques sont fournis, on les convertit en une liste d'entiers à partir de la chaîne de caractères fournie (ex: "80,443" devient [80, 443]).
+            port_str = ','.join(str(p) for p in port_list) # On reconvertit la liste de ports en une chaîne de caractères formatée pour Nmap (ex: [80, 443] devient "80,443").
 
-    except nmap.PortScannerError as e:
-        print(f"Erreur Nmap : {e}")  # Affiche les erreurs spécifiques à Nmap
+            nm.scan(hosts=target, ports=port_str, arguments='-T4') # Effectue le scan des ports spécifiés avec une vitesse de scan rapide (-T4).
+
+            for host in nm.all_hosts(): # Parcourt tous les hôtes trouvés par le scan (généralement il n'y en aura qu'un, celui ciblé).
+                for proto in nm[host].all_protocols(): # Parcourt tous les protocoles détectés pour cet hôte (généralement TCP, mais peut aussi être UDP).
+                    for port in nm[host][proto]: # Parcourt tous les ports détectés pour ce protocole.
+                        if nm[host][proto][port]['state'] == 'open': # Vérifie si le port est ouvert.
+                            result = f"Port {port}: Ouvert - {nm[host][proto][port]['name']}\n" # Formate le résultat pour indiquer le port, son état (ouvert) et le nom du service associé.
+                            print(result.strip()) # Affiche le résultat à la console, en supprimant les espaces superflus.
+
+                            if output_file: 
+                                with open(output_file, "a") as f: 
+                                    f.write(result)
+
     except Exception as e:
-        print(f"Une erreur s'est produite : {e}") # Si on obtient une erreur générale, affiche un message.
-
+        print(f"Erreur : {e}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Scanner les ports d'une adresse IP (tous ou spécifiés).") # Crée un objet ArgumentParser pour gérer les arguments de la ligne de commande
-    parser.add_argument("target", help="L'adresse IP ou le nom d'hôte de la cible.")  # Définit l'argument obligatoire "target"
-    parser.add_argument("--ports", help="Une chaîne séparée par des virgules contenant les numéros de port à scanner (par défaut: tous).") # Définit l'argument optionnel "--ports"
-    parser.add_argument("--output", help="Nom du fichier de sortie pour enregistrer les résultats.")  # Définit l'argument optionnel "--output"
+    parser = argparse.ArgumentParser(description="Scanner les ports d'une IP.") # On crée un objet ArgumentParser pour gérer les arguments de la ligne de commande, avec une description du programme.
+    parser.add_argument("target", help="IP ou hostname") # On ajoute un argument obligatoire "target" pour spécifier l'IP ou le hostname à scanner.
+    parser.add_argument("--ports", help="Ports ex: 80,443") # On ajoute un argument optionnel "--ports" pour spécifier les ports à scanner, avec un exemple de format (ex: "80,443"). Si cet argument n'est pas fourni, le programme scannera tous les ports.
+    parser.add_argument("--output", help="Fichier de sortie") # On ajoute un argument optionnel "--output" pour spécifier un fichier de sortie où les résultats du scan seront enregistrés. Si cet argument n'est pas fourni, les résultats seront affichés uniquement à la console.
 
-    args = parser.parse_args() # Analyse les arguments passés en ligne de commande
+    args = parser.parse_args() # On utilise argparse pour gérer les arguments de la ligne de commande. L'utilisateur doit fournir une cible (IP ou hostname), et peut optionnellement spécifier des ports à scanner et un fichier de sortie pour enregistrer les résultats.
+
+    ports = args.ports if args.ports else 'all'
     output_file = args.output
-    if output_file is None:
-        output_file = input("Entrez le nom du fichier de sortie : ")
+
     if output_file:
-        try:
-            with open(output_file, "w") as f:  # Ouvre le fichier en mode écriture ("w") pour créer ou écraser le fichier de sortie
-                f.write("Scan en cours...\n") # Ajout d'un message indiquant que le scan est en cours
-            print(f"Les résultats seront écrits dans {output_file}")
-        except Exception as e:
-            print(f"Erreur lors de l'ouverture du fichier : {e}")
-    scan_ports(args.target, args.ports, output_file)  # Appelle la fonction pour effectuer le scan avec les arguments fournis
+        with open(output_file, "w") as f: # Si un fichier de sortie est spécifié, on l'ouvre en mode écriture pour créer ou écraser le fichier existant, et on écrit un message initial indiquant que le scan est en cours.
+            f.write("Scan en cours...\n") # On écrit un message initial dans le fichier de sortie pour indiquer que le scan est en cours.
+
+    scan_ports(args.target, ports, output_file) # On appelle la fonction scan_ports avec les arguments fournis par l'utilisateur (IP cible, ports à scanner et fichier de sortie).
