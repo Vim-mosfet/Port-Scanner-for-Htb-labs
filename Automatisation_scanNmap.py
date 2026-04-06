@@ -1,4 +1,89 @@
 import argparse
+import nmap  # Bibliothèque python‑nmap pour interagir avec Nmap
+
+
+def scan_ports(target, ports='all', output_file=None):
+    """
+    Scanne les ports d’une cible et affiche (ou enregistre) les résultats.
+
+    Args:
+        target (str): IP ou hostname à scanner.
+        ports (str): Liste de ports séparés par des virgules,
+                     ou 'all' pour scanner tous les ports.
+        output_file (str, optional): Fichier où écrire les résultats.
+    """
+    nm = nmap.PortScanner()
+
+    try:
+        print(f"Scan en cours sur {target}…")
+
+        # Arguments communs à tous les scans
+        scan_args = '-T4 -sV -sC -O'
+
+        if ports == 'all':
+            # Scan de 1 à 65535
+            nm.scan(hosts=target, ports='1-65535', arguments=scan_args)
+        else:
+            # Ports personnalisés (ex. "80,443")
+            port_list = [int(p) for p in ports.split(',')]
+            port_str = ','.join(str(p) for p in port_list)
+            nm.scan(hosts=target, ports=port_str, arguments=scan_args)
+
+        # Traitement des résultats
+        for host in nm.all_hosts():
+            print(f"\n=== Résultats pour {host} ===")
+
+            # OS probable (si disponible)
+            if 'osmatch' in nm[host]:
+                for os in nm[host]['osmatch']:
+                    print(f"OS probable : {os['name']} ({os['accuracy']} %)")
+
+            # Ports ouverts
+            for proto in nm[host].all_protocols():
+                for port in nm[host][proto]:
+                    service = nm[host][proto][port]
+                    if service['state'] == 'open':
+                        name      = service.get('name', '')
+                        product   = service.get('product', '')
+                        version   = service.get('version', '')
+                        extrainfo = service.get('extrainfo', '')
+
+                        result = (
+                            f"Port {port} : Ouvert - {name}\n"
+                            f"  Produit : {product}\n"
+                            f"  Version : {version}\n"
+                            f"  Info    : {extrainfo}\n"
+                        )
+                        print(result.strip())
+
+                        if output_file:
+                            with open(output_file, "a", encoding="utf-8") as f:
+                                f.write(result)
+
+    except Exception as e:
+        print(f"Erreur : {e}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Scanner les ports d’une IP (et récupérer services + OS)."
+    )
+    parser.add_argument("target", help="IP ou hostname à scanner")
+    parser.add_argument("--ports", help="Liste de ports séparés par des virgules, ex: 80,443")
+    parser.add_argument("--output", help="Fichier où enregistrer les résultats")
+
+    args = parser.parse_args()
+
+    # Valeur par défaut : scanner tous les ports
+    ports = args.ports if args.ports else 'all'
+    output_file = args.output
+
+    # Si on veut un fichier de sortie, créer/écraser le fichier et y écrire un en-tête
+    if output_file:
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write("Scan en cours...\n")
+
+    scan_ports(args.target, ports, output_file)import argparse
 import nmap # On importe la bibliothèque python-nmap pour interagir avec Nmap.
 
 def scan_ports(target, ports='all', output_file=None): # On définit une fonction scan_ports qui prend en paramètres l'IP cible, les ports à scanner (par défaut 'all' pour tous les ports) et un fichier de sortie optionnel pour enregistrer les résultats.
