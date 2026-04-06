@@ -32,9 +32,11 @@ python Automatisation_scanNmap.py 192.1.1.1 # Scan all ports without saving outp
 python Automatisation_scanNmap.py 192.1.1.1 --ports 80,443,22 # Scan specificports without saving output 
 python Automatisation_scanNmap.py 192.1.1.1 --ports 22,80 --output EXEMPLE.txt # Scan sspecific ports with saving output
 
+```
 **Script**
 
-```import argparse
+```
+import argparse
 import nmap
 
 def scan_ports(target, ports='all', output_file=None):
