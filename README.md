@@ -34,8 +34,7 @@ python Automatisation_scanNmap.py 192.1.1.1 --ports 22,80 --output EXEMPLE.txt #
 
 **Script**
 
-```
-import argparse
+```import argparse
 import nmap
 
 def scan_ports(target, ports='all', output_file=None):
