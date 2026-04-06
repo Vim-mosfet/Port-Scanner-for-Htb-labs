@@ -9,7 +9,7 @@ This project presents a TCP port scanner written in Python, designed to illustra
 *   Scan all or a specified range of ports on a given IP address.
 *   Identify the status (open or closed) of each port.
 *   Log results to a file.
-*   Displays a progress bar to track scan progress.
+*   Os Detection
 
 **Technologies Used:**
 
