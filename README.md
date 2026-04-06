@@ -19,6 +19,7 @@ This project presents a TCP port scanner written in Python, designed to illustra
 **Prerequisites:**
 
 *   Python 3.x installed on your system.
+
 **Usage:**
 
 ```bash
